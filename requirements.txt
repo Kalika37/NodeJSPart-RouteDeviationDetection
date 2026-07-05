@@ -1,0 +1,20 @@
+
+npm install express 
+npm install mongoose 
+npm install multer 
+npm install jsonwebtoken
+npm install express-session connect-mongo
+npm install validator
+npm install dotenv
+npm install cors
+
+npm install bcryptjs
+
+npm install firebase-admin
+npm install socket.io
+
+
+
+//if database corrupted 
+-> ren C:\data\db db_backup
+-> mkdir C:\data\db

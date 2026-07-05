@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "name": "sos-device-backend",
+  "dependencies": {
+    "bcryptjs": {
+      "version": "3.0.3",
+      "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
+      "overridden": false
+    },
+    "connect-mongo": {
+      "version": "6.0.0",
+      "resolved": "https://registry.npmjs.org/connect-mongo/-/connect-mongo-6.0.0.tgz",
+      "overridden": false
+    },
+    "cookie-parser": {
+      "version": "1.4.7",
+      "resolved": "https://registry.npmjs.org/cookie-parser/-/cookie-parser-1.4.7.tgz",
+      "overridden": false
+    },
+    "cors": {
+      "version": "2.8.6",
+      "resolved": "https://registry.npmjs.org/cors/-/cors-2.8.6.tgz",
+      "overridden": false
+    },
+    "dotenv": {
+      "version": "17.4.2",
+      "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.4.2.tgz",
+      "overridden": false
+    },
+    "ejs": {
+      "version": "6.0.1",
+      "resolved": "https://registry.npmjs.org/ejs/-/ejs-6.0.1.tgz",
+      "overridden": false
+    },
+    "express-session": {
+      "version": "1.19.0",
+      "resolved": "https://registry.npmjs.org/express-session/-/express-session-1.19.0.tgz",
+      "overridden": false
+    },
+    "express": {
+      "version": "5.2.1",
+      "resolved": "https://registry.npmjs.org/express/-/express-5.2.1.tgz",
+      "overridden": false
+    },
+    "firebase-admin": {
+      "version": "13.10.0",
+      "resolved": "https://registry.npmjs.org/firebase-admin/-/firebase-admin-13.10.0.tgz",
+      "overridden": false
+    },
+    "mongoose": {
+      "version": "9.6.3",
+      "resolved": "https://registry.npmjs.org/mongoose/-/mongoose-9.6.3.tgz",
+      "overridden": false
+    },
+    "multer": {
+      "version": "2.1.1",
+      "resolved": "https://registry.npmjs.org/multer/-/multer-2.1.1.tgz",
+      "overridden": false
+    },
+    "nodemon": {
+      "version": "3.1.14",
+      "resolved": "https://registry.npmjs.org/nodemon/-/nodemon-3.1.14.tgz",
+      "overridden": false
+    },
+    "socket.io": {
+      "version": "4.8.3",
+      "resolved": "https://registry.npmjs.org/socket.io/-/socket.io-4.8.3.tgz",
+      "overridden": false
+    },
+    "validator": {
+      "version": "13.15.35",
+      "resolved": "https://registry.npmjs.org/validator/-/validator-13.15.35.tgz",
+      "overridden": false
+    }
+  }
+}
