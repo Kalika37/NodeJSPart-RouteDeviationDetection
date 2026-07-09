@@ -5,9 +5,13 @@ const authMiddleware = async (req, res, next) => {
   // console.log("Middleware Start");
 
   try {
-    if(!req.headers.origin && process.env.IS_WEP_NATIVE_TESTING){
-       const users = await User.find();
-       const user=users[0]
+    if (!req.headers.origin) {
+      return await React_Native_Request(req, res, next)
+    }
+    console.log("middleware")
+    if (!req.headers.origin && process.env.IS_WEP_NATIVE_TESTING) {
+      const users = await User.find();
+      const user = users[0]
 
       if (user) {
         req.dbUser = user;
@@ -28,4 +32,18 @@ const authMiddleware = async (req, res, next) => {
     return next(error);
   }
 };
+async function React_Native_Request(req, res, next) {
+  if (req.user) {
+    try {
+      const user = await User.findOne({ uid: req.user.uid });
+      if (user) {
+        req.dbUser = user;
+      }
+    } catch (err) {
+
+    }
+
+  }
+  next();
+}
 module.exports = authMiddleware;

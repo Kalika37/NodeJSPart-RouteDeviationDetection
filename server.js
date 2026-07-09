@@ -26,7 +26,7 @@ const BaseMiddleware = require("./middleware/baseMiddleware");
 
 
 //loading controllers
-const { login, register, updateDevice, Logout, CheckAuthorization, loginWithGoogle } = require("./controllers/authController");
+const { login, register, updateDevice, Logout, CheckAuthorization, loginWithGoogle,refreshToken } = require("./controllers/authController");
 const { GetProfule , ProfileDashboard,ProfileDashboardSelectionUpdate,ProfilePictureUpload} = require("./controllers/profileController");
 
 const authMiddleware = require('./middleware/authenticate');
@@ -95,14 +95,15 @@ app.use(BaseMiddleware)
 
 
 //public domain 
+app.use('/uploads', express.static('uploads'));
+
+app.use(verifyUser)
+app.use(authMiddleware)
 app.post("/login", login)
 app.post("/register", register)
 app.post("/google-login", loginWithGoogle)
-app.use('/uploads', express.static('uploads'));
 
 //protecteds routes
-app.use(verifyUser)
-app.use(authMiddleware)
 
 app.use(
   "/uploads",
@@ -124,6 +125,7 @@ app.post("/profileDashboard", ProfileDashboard)
 app.post("/uploadProfilePicture", ProfilePictureUpload)
 app.post("/profileDashboard/select", ProfileDashboardSelectionUpdate)
 app.post("/auth", CheckAuthorization)
+app.post("/refreshtoken", refreshToken)
 
 
 app.use(express.static(path.join(__dirname, 'public')));

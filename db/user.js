@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-
   authProvider: {
     type: String,
     enum: ["local", "google", "facebook", "github"],
@@ -44,6 +43,10 @@ const userSchema = new mongoose.Schema({
     type: String // URL (stored in Firebase Storage or Cloudinary)
   },
   bio: {
+    type: String,
+    default: ""
+  },
+  refreshToken : {
     type: String,
     default: ""
   },

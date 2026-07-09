@@ -26,6 +26,10 @@ const routeSchema = new mongoose.Schema(
       type: String,
       default: 'Default Route',
     },
+    routeIndex:{
+      type:Number,
+      default:0
+    },
     direction: {
       type: String,
       enum: ['HOME_TO_SCHOOL', 'SCHOOL_TO_HOME'],

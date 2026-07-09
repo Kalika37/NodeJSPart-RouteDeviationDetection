@@ -2,6 +2,7 @@ const User = require("../db/User");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const readline = require("readline");
+const mongoose = require("mongoose");
 
 
 // Create exactly ONE interface for the entire lifecycle
@@ -125,7 +126,23 @@ class Validator {
     }
 }
 
+const getAllUsers = async () => {
+  try {
+    const users = await User.find();
 
+    console.table(
+      users.map(user => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        password:user.password
+      }))
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 class AdminManager {
     Validator = new Validator()
@@ -134,7 +151,7 @@ class AdminManager {
     GREEN = "\x1b[32m";
     YELLOW = "\x1b[33m";
     constructor(constraint) {
-        this.Command = constraint[3]
+        this.Command = constraint[2]
 
 
     }
@@ -143,8 +160,11 @@ class AdminManager {
             case "createsuperuser":
                 await this.GenerateAdminUser()
                 break
+            case "change-password":
+                await this.ChangePassword()
+                break
             default:
-                console.log("invalid command")
+                console.log("invalid commands")
                 break
 
         }
@@ -163,6 +183,20 @@ class AdminManager {
             return this.UserName()
         }
         return input
+    }
+    async FindUserByID() {
+        const id = await ask("UserID: ")
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            console.log(this.RED, "Invalid ID", this.RESET)
+            return await this.FindUserByID()
+
+        }
+        const user = User.findById(id)
+        if (user) {
+            return user
+        }
+        console.log(this.RED, "User Not Found", this.RESET)
+        return await this.FindUserByID()
     }
     async Email() {
         const email = await ask("Email: ")
@@ -200,6 +234,16 @@ class AdminManager {
             console.log(this.YELLOW, validatePassword.message, this.RESET)
             return this.getPassword(user)
         }
+        const confirmPassword=await ask("Confirm Password: ", true)
+        if(password!=confirmPassword){
+            console.log(this.YELLOW, "Password isn't matched", this.RESET)
+            return this.getPassword(user)
+        }
+        return password
+    }
+    async getConfirmPassword() {
+        const password = await ask("Confirm Password: ", true)
+        
         return password
     }
     async RegisterUser() {
@@ -260,9 +304,22 @@ class AdminManager {
             phone,
             bio,
             password: hashedPassword,
- 
+
         });
         return user
+    }
+    async ChangePassword() {
+        await getAllUsers()
+
+        console.log(this.BLUE, `CHANGE PASSWORD`, this.RESET)
+        
+        const user = await this.FindUserByID()
+        const password = await this.getPassword(user)
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user.password=hashedPassword
+        await user.save()
+        console.log(this.BLUE,"Password successfully changed")
+        
     }
     getUserConstraints() {
 

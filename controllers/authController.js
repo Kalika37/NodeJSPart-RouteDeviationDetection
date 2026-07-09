@@ -5,7 +5,12 @@ const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const path = require("path");
 const admin = require("../config/firebase");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../utils/tokens");
 
+const { refreshToken } = require("./refreshToken")
 const validatePassword = (password, userData) => {
   // Strong password regex
   const strongPassword =
@@ -54,17 +59,14 @@ const validatePassword = (password, userData) => {
 
 
 const login = async (req, res) => {
-  if (!req.headers.origin && process.env.IS_WEP_NATIVE_TESTING) {
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      redirect: "/",
-    })
-  }
   try {
-    const { email, password, fcmToken } = req.body;
-    getAllUsers()
-    console.log(email,password)
+    const { email, password } = req.body;
+    const {
+      deviceId,
+      platform,
+      fcmToken,
+      location,
+    } = req.body;
     // Check if email and password are provided
     if (!email || !password) {
       return res.status(400).json({
@@ -88,7 +90,6 @@ const login = async (req, res) => {
       password,
       user.password
     );
-    console.log(bcrypt.hash(password,10))
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -98,36 +99,42 @@ const login = async (req, res) => {
 
     // Generate JWT
 
-    req.session.userId = user._id;
-
-    req.session.save(async (err) => {
-      // console.log("save error:", err);
-      // console.log("session:", req.session);
-      if (!process.env.IS_WEP_NATIVE) {
-        const idToken = fcmToken;
-        const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-        const sessionCookie = await admin
-          .auth()
-          .createSessionCookie(idToken, { expiresIn });
-        res.cookie("session", sessionCookie, {
-          maxAge: expiresIn,
-          httpOnly: true,
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-          secure: process.env.NODE_ENV === "production", // true in production HTTPS
-        });
-      }
-      res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-        },
-        redirect: "/"
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    user.refreshToken = refreshToken
+    const existingDevice = user.devices.find(
+      (d) => d.deviceId === deviceId
+    );
+    if (existingDevice) {
+      existingDevice.platform = platform;
+      existingDevice.fcmToken = fcmToken;
+      existingDevice.lastActive = new Date();
+    } else {
+      user.devices.push({
+        deviceId,
+        platform,
+        fcmToken,
+        lastActive: new Date(),
       });
-      // console.log("login success")
-    });
+    }
+
+    user.location = {
+      lat: location.lat,
+      lng: location.lng,
+      updatedAt: new Date(),
+    };
+    // console.log(user)
+    await user.save()
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    })
   } catch (error) {
     console.error(error);
 
@@ -180,35 +187,19 @@ const loginWithGoogle = async (req, res) => {
 
     // Create user
 
-
-    req.session.userId = user._id;
-    req.session.save(async (err) => {
-      // console.log("save error:", err);
-      // console.log("session:", req.session);
-
-      const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-
-      const sessionCookie = await admin
-        .auth()
-        .createSessionCookie(idToken, { expiresIn });
-      res.cookie("session", sessionCookie, {
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: expiresIn,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "Registration successful",
-        idToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-        },
-        redirect: "/"
-      });
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    user.refreshToken = refreshToken
+    await user.save()
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     })
   } catch (error) {
     console.error(error, "failed");
@@ -292,21 +283,24 @@ const register = async (req, res) => {
 
     // Create user
     const uid = crypto.randomUUID();
-    const oldPath = req.files[0].path;
-    const newPath = path.join(
-      __dirname,
-      `../public/profile-pictures/${uid}`,
-      req.files[0].filename
-    );
-    const dir =
-      path.join(__dirname, `../public/profile-pictures/${uid}`);
+    let profilePicture = null
+    if (req.files.length > 0) {
+      const oldPath = req.files[0].path;
+      const newPath = path.join(
+        __dirname,
+        `../public/profile-pictures/${uid}`,
+        req.files[0].filename
+      );
+      const dir =
+        path.join(__dirname, `../public/profile-pictures/${uid}`);
 
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.renameSync(oldPath, newPath);
+      profilePicture =
+        `/profile-pictures/${uid}/${req.files[0].filename}`
     }
-    fs.renameSync(oldPath, newPath);
-    const profilePicture =
-      `/profile-pictures/${uid}/${req.files[0].filename}`
     const user = await User.create({
       uid,
       name,
@@ -320,33 +314,19 @@ const register = async (req, res) => {
     });
 
 
-    req.session.userId = user._id;
-    req.session.save(async (err) => {
-      // console.log("save error:", err);
-      // console.log("session:", req.session);
-
-      const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-
-      const sessionCookie = await admin
-        .auth()
-        .createSessionCookie(idToken, { expiresIn });
-      res.cookie("session", sessionCookie, {
-        maxAge: expiresIn,
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        secure: process.env.NODE_ENV === "production", // true in production HTTPS
-
-      });
-      res.status(200).json({
-        success: true,
-        message: "Registration successful",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-        },
-        redirect: "/"
-      });
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    user.refreshToken = refreshToken
+    await user.save()
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     })
   } catch (error) {
     console.error(error, "failed");
@@ -419,8 +399,6 @@ const updateDevice = async (req, res) => {
 
 const Logout = async (req, res) => {
   try {
-    console.log(req.body)
-    res.clearCookie("session");
     const userId = req.dbUser.id;
     const { deviceId } = req.body;
 
@@ -429,6 +407,9 @@ const Logout = async (req, res) => {
       {
         $pull: {
           devices: { deviceId },
+        },
+        $set: {
+          refreshToken: null,
         },
       }
     );
@@ -445,13 +426,7 @@ const Logout = async (req, res) => {
   }
 };
 const CheckAuthorization = async (req, res) => {
-  if (!req.headers.origin && process.env.IS_WEP_NATIVE_TESTING) {
-    return res.status(200).json({
-      authenticated: true,
-      adminAccess: true,
-      message: "Logged In",
-    });
-  }
+
   if (req.dbUser) {
     if (req.dbUser.adminAccess) {
       return res.status(200).json({
@@ -475,7 +450,7 @@ const CheckAuthorization = async (req, res) => {
 
 
 }
-module.exports = { login, register, updateDevice, Logout, CheckAuthorization, loginWithGoogle };
+module.exports = { login, register, updateDevice, Logout, CheckAuthorization, loginWithGoogle, refreshToken };
 
 
 

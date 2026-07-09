@@ -61,8 +61,10 @@ const ProfileDashboard = async (req, res) => {
       .populate("device")
       .lean()
     if (!currentDevice && devices) {
-      currentDevice = await UserCurrentDevice.create({ device: devices[0]._id, user: user._id })
-      await currentDevice.populate("device")
+      if (devices.length > 0) {
+        currentDevice = await UserCurrentDevice.create({ device: devices[0]._id, user: user._id })
+        await currentDevice.populate("device")
+      }
     }
     const dvs = []
     devices.forEach(device => {
@@ -73,7 +75,7 @@ const ProfileDashboard = async (req, res) => {
       success: true,
       user: ParseUser(user),
       devices: dvs,
-      currentDevice: getParsedDeviceForAdmin(currentDevice.device)
+      currentDevice: getParsedDeviceForAdmin(currentDevice?.device)
     });
   } catch (error) {
     console.error(error);

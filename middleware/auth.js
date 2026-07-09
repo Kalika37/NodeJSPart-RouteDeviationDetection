@@ -1,6 +1,7 @@
 // middleware/auth.js
 
 const admin = require("../config/firebase");
+const jwt = require("jsonwebtoken");
 
 const verifyUser = async (
   req,
@@ -8,6 +9,10 @@ const verifyUser = async (
   next
 ) => {
   try {
+    if (!req.headers.origin) {
+      await React_Native_Request(req, res, next)
+      return
+    }
     if (process.env.IS_WEP_NATIVE) {
       // if (req.session.userId) {
       req.uid = "decoded.uid";
@@ -39,7 +44,25 @@ const verifyUser = async (
     console.log(error)
     next()
   }
-  return 
+  return
 };
+
+async function React_Native_Request(req, res, next) {
+  const token = req.headers.authorization?.split(" ")[1]
+  if (token) {
+    try {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_ACCESS_SECRET
+      );
+
+      req.user = decoded;
+    } catch (err) {
+
+    }
+    
+  }
+  next();
+}
 
 module.exports = verifyUser;
